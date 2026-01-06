@@ -10,12 +10,18 @@
   - Playwright configured with fake media stream flags for camera testing
   - All dependencies installed (lucide-svelte, postcss, autoprefixer, etc.)
 
-- **Directory Structure Created**
-  - `src/lib/components/` - UI components (empty)
-  - `src/lib/engine/` - Filter logic (empty)
-  - `src/lib/services/` - Media/Recorder services (empty)
-  - `src/lib/stores/` - Svelte stores (empty)
-  - `tests/` - Playwright e2e tests (empty)
+- **Core Module B: Filter Engine** (2026-01-06)
+  - `src/lib/engine/filters.ts` - 5 pure filter functions
+  - Filters: identity, orangeTeal, whiteNoise, eightBit, asciiGrayscale
+  - Helper: `getAsciiChar()` for ASCII brightness mapping
+  - 37 unit tests passing (`src/tests/unit/filters.test.ts`)
+
+- **Core Module A: Media Stream Controller** (2026-01-06)
+  - `src/lib/stores/camera.ts` - Svelte store for MediaStream state
+  - `src/lib/services/camera.ts` - Camera service with getUserMedia
+  - Permission status tracking (prompt, granted, denied, error)
+  - User-friendly error messages for camera errors
+  - 5 e2e tests passing (`src/tests/e2e/camera.test.ts`)
 
 - **Scripts Available**
   - `npm run dev` - Development server
@@ -28,11 +34,10 @@
   - `npm run format` - Auto-format code
 
 ## Next Steps
-1. Implement Media Stream Controller (`src/lib/services/media.ts`)
-2. Implement Filter Engine with first filters (`src/lib/engine/`)
-3. Create Svelte stores for state management (`src/lib/stores/`)
-4. Build UI components (Camera, FilterDropdown, Controls)
-5. Implement Recorder service with File System Access API fallback
+1. Build Core Module C: Rendering Loop (canvas processing with filters)
+2. Build UI components (FilterDropdown, Controls overlay)
+3. Implement Recorder service with File System Access API fallback
+4. Create filter store for current filter selection
 
 ## Technical Debt
 - None yet
@@ -42,3 +47,5 @@
 - Use `$lib` alias for all internal imports
 - All filters must be pure functions taking/returning ImageData
 - Reuse buffers in requestAnimationFrame loop to avoid GC spikes
+- Vitest excludes `src/tests/e2e/` (Playwright tests)
+- Playwright uses `--use-fake-device-for-media-stream` flag
