@@ -21,7 +21,15 @@
   - `src/lib/services/camera.ts` - Camera service with getUserMedia
   - Permission status tracking (prompt, granted, denied, error)
   - User-friendly error messages for camera errors
-  - 5 e2e tests passing (`src/tests/e2e/camera.test.ts`)
+
+- **Core Module C: Rendering Loop** (2026-01-06)
+  - `src/lib/components/FilterCanvas.svelte` - Canvas rendering with filters
+  - `src/lib/stores/filter.ts` - Filter selection store
+  - requestAnimationFrame loop with offscreen canvas pattern
+  - Video readyState check to prevent black screen bug
+  - Resolution matching from stream settings
+  - isMounted guard and proper cleanup on destroy
+  - 6 e2e tests passing (`src/tests/e2e/camera.test.ts`)
 
 - **Scripts Available**
   - `npm run dev` - Development server
@@ -34,10 +42,10 @@
   - `npm run format` - Auto-format code
 
 ## Next Steps
-1. Build Core Module C: Rendering Loop (canvas processing with filters)
-2. Build UI components (FilterDropdown, Controls overlay)
-3. Implement Recorder service with File System Access API fallback
-4. Create filter store for current filter selection
+1. Build UI components (FilterDropdown with icons, Controls overlay)
+2. Implement Core Module E: Recorder service with File System Access API fallback
+3. Add snapshot functionality
+4. Polish UI layout (high-z-index overlay for controls)
 
 ## Technical Debt
 - None yet

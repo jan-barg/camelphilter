@@ -33,6 +33,23 @@ Pure Functions: Filter logic must be pure functions that take ImageData and retu
 
 Cleanup: Always implement an onDestroy or equivalent cleanup to stop the MediaStream and cancel the animation frame.
 
+# Rendering Loop (FilterCanvas Component)
+The FilterCanvas component (`src/lib/components/FilterCanvas.svelte`) handles the video-to-canvas rendering pipeline:
+
+1. **Video readyState check**: Always verify `video.readyState >= video.HAVE_CURRENT_DATA` before drawing. This prevents the "black screen" bug that occurs when the loop starts before video is playing.
+
+2. **Resolution matching**: Canvas dimensions must match video stream resolution. Get dimensions from `stream.getVideoTracks()[0].getSettings()` to avoid out-of-bounds errors in filter math.
+
+3. **Offscreen canvas pattern**: Use an offscreen canvas for processing to avoid flicker:
+   - Draw video frame to offscreen canvas
+   - Get ImageData and apply filter
+   - Put modified ImageData back
+   - Copy offscreen canvas to visible canvas
+
+4. **isMounted guard**: Track component mount state and check before each frame to prevent rendering after component destruction.
+
+5. **$effect for stream changes**: Use Svelte 5 `$effect` to reinitialize the rendering loop when the stream prop changes.
+
 # PR & Commit instructions
 Title format: [<module_name>] <Short Title> (Modules: engine, ui, camera, recorder).
 

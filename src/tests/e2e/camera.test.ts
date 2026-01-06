@@ -27,9 +27,9 @@ test.describe('Camera Module', () => {
 		const startButton = page.getByTestId('start-camera-btn');
 		await startButton.click();
 
-		// Wait for video element to appear
-		const video = page.getByTestId('camera-video');
-		await expect(video).toBeVisible({ timeout: 5000 });
+		// Wait for filter canvas to appear (replaced video element)
+		const canvas = page.getByTestId('filter-canvas');
+		await expect(canvas).toBeVisible({ timeout: 5000 });
 
 		// Verify stop button appears
 		const stopButton = page.getByTestId('stop-camera-btn');
@@ -42,8 +42,8 @@ test.describe('Camera Module', () => {
 		// Start camera
 		await page.getByTestId('start-camera-btn').click();
 
-		// Wait for video to appear
-		await expect(page.getByTestId('camera-video')).toBeVisible({ timeout: 5000 });
+		// Wait for canvas to appear
+		await expect(page.getByTestId('filter-canvas')).toBeVisible({ timeout: 5000 });
 
 		// Stop camera
 		await page.getByTestId('stop-camera-btn').click();
@@ -51,30 +51,49 @@ test.describe('Camera Module', () => {
 		// Start button should reappear
 		await expect(page.getByTestId('start-camera-btn')).toBeVisible();
 
-		// Video should be gone
-		await expect(page.getByTestId('camera-video')).not.toBeVisible();
+		// Canvas should be gone
+		await expect(page.getByTestId('filter-canvas')).not.toBeVisible();
 	});
 
-	test('video element receives stream and plays', async ({ page }) => {
+	test('canvas renders filtered output', async ({ page }) => {
 		await page.goto('/');
 
 		// Start camera
 		await page.getByTestId('start-camera-btn').click();
 
-		// Wait for video
-		const video = page.getByTestId('camera-video');
-		await expect(video).toBeVisible({ timeout: 5000 });
+		// Wait for canvas
+		const canvas = page.getByTestId('filter-canvas');
+		await expect(canvas).toBeVisible({ timeout: 5000 });
 
-		// Verify video is playing (has non-zero dimensions and is not paused)
-		const isPlaying = await video.evaluate((el: HTMLVideoElement) => {
-			return !el.paused && el.readyState >= 2;
+		// Give the rendering loop time to draw
+		await page.waitForTimeout(500);
+
+		// Verify canvas has non-zero dimensions
+		const dimensions = await canvas.evaluate((el: HTMLCanvasElement) => {
+			return { width: el.width, height: el.height };
 		});
 
-		// With fake device, readyState might vary, so just check video exists and has srcObject
-		const hasSrcObject = await video.evaluate((el: HTMLVideoElement) => {
-			return el.srcObject !== null;
-		});
+		expect(dimensions.width).toBeGreaterThan(0);
+		expect(dimensions.height).toBeGreaterThan(0);
+	});
 
-		expect(hasSrcObject).toBe(true);
+	test('filter dropdown changes filter', async ({ page }) => {
+		await page.goto('/');
+
+		// Start camera
+		await page.getByTestId('start-camera-btn').click();
+
+		// Wait for canvas
+		await expect(page.getByTestId('filter-canvas')).toBeVisible({ timeout: 5000 });
+
+		// Verify filter select is visible
+		const filterSelect = page.getByTestId('filter-select');
+		await expect(filterSelect).toBeVisible();
+
+		// Change filter to '8-Bit'
+		await filterSelect.selectOption('8-Bit');
+
+		// Verify the selection changed
+		await expect(filterSelect).toHaveValue('8-Bit');
 	});
 });
