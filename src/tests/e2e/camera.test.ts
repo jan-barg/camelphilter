@@ -11,13 +11,13 @@ test.describe('Camera Module', () => {
 
 		const startButton = page.getByTestId('start-camera-btn');
 		await expect(startButton).toBeVisible();
-		await expect(startButton).toHaveText('Start Camera');
+		await expect(startButton).toHaveText('Initialize Vision');
 	});
 
 	test('page has correct title', async ({ page }) => {
 		await page.goto('/');
 
-		await expect(page).toHaveTitle('CamelPhilter');
+		await expect(page).toHaveTitle('CamelPhilter | Professional Vision');
 	});
 
 	test('starts camera stream when button clicked', async ({ page }) => {

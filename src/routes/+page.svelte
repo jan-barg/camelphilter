@@ -1,44 +1,78 @@
 <script lang="ts">
-    import { onDestroy } from 'svelte';
+    import { onDestroy, onMount } from 'svelte';
     import { cameraStore, isCameraActive } from '$lib/stores/camera';
     import { requestCamera, stopCamera, isCameraSupported } from '$lib/services/camera';
     import { currentFilterFn } from '$lib/stores/filter';
-    
-    // Updated imports to include everything we need
-    import { isRecording, savePath, directorySelected } from '$lib/stores/appState'; 
-    
+    import { isRecording, savePath, canCapture, isFileSystemSupported } from '$lib/stores/appState';
+    import { requestDirectory, saveSnapshot, checkFileSystemSupport } from '$lib/services/filesystem';
+    import { initRecorder, startRecording, stopRecording, destroyRecorder } from '$lib/services/recorder';
+
     import FilterCanvas from '$lib/components/FilterCanvas.svelte';
     import Navbar from '$lib/components/Navbar.svelte';
     import FilterDropdown from '$lib/components/FilterDropdown.svelte';
     import ActionBar from '$lib/components/ActionBar.svelte';
+
+    // Canvas reference for recording/snapshots
+    let canvasRef: HTMLCanvasElement | null = $state(null);
+    let recorderInitialized = $state(false);
+
+    // Initialize recorder when canvas becomes available
+    $effect(() => {
+        if (canvasRef && !recorderInitialized) {
+            recorderInitialized = initRecorder(canvasRef);
+        }
+    });
+
+    // Check file system support on mount
+    onMount(() => {
+        checkFileSystemSupport();
+    });
 
     async function handleStartCamera() {
         await requestCamera({ width: 1280, height: 720 });
     }
 
     function handleStopCamera() {
+        // Stop recording if active
+        if ($isRecording) {
+            stopRecording();
+        }
         stopCamera();
+        recorderInitialized = false;
     }
 
-    function handleSnapshot() {
-        console.log('Snapshot triggered');
+    async function handleSnapshot() {
+        if (!canvasRef) {
+            console.error('Canvas not available');
+            return;
+        }
+        await saveSnapshot(canvasRef);
     }
 
     function handleStartRecording() {
-        console.log('Recording started');
-        // logic to update $isRecording = true;
+        if (!canvasRef) {
+            console.error('Canvas not available');
+            return;
+        }
+
+        // Re-init recorder if needed (e.g., after stopping camera)
+        if (!recorderInitialized) {
+            recorderInitialized = initRecorder(canvasRef);
+        }
+
+        startRecording();
     }
 
     function handleStopRecording() {
-        console.log('Recording stopped');
-        // logic to update $isRecording = false;
+        stopRecording();
     }
 
-    function handleSelectDirectory() {
-        console.log('Directory selector opened');
+    async function handleSelectDirectory() {
+        await requestDirectory();
     }
 
     onDestroy(() => {
+        destroyRecorder();
         stopCamera();
     });
 </script>
@@ -76,21 +110,25 @@
 
         {:else if $isCameraActive && $cameraStore.stream}
             <div class="w-full max-w-[1500px] flex flex-col items-center gap-8">
-                
+
                 <div class="grid grid-cols-[1fr_auto_1fr] items-stretch w-full gap-12">
                     <div class="hidden xl:block"></div>
 
                     <div class="flex flex-col gap-6 items-center">
                         <div class="w-[1000px] aspect-video rounded-liquid overflow-hidden liquid-glass border-indigo-ink/10 shadow-[0_30px_80px_rgba(36,0,70,0.2)] bg-dark-amethyst relative group">
-                            <FilterCanvas 
-                                stream={$cameraStore.stream} 
-                                filter={$currentFilterFn} 
+                            <FilterCanvas
+                                stream={$cameraStore.stream}
+                                filter={$currentFilterFn}
+                                bind:canvasRef
                             />
                         </div>
 
                         <div class="w-[1000px] liquid-glass rounded-liquid px-8 py-5 shadow-xl border-white/60">
-                            <ActionBar 
+                            <ActionBar
                                 isRecording={$isRecording}
+                                savePath={$savePath}
+                                canCapture={$canCapture}
+                                showDirectoryPicker={$isFileSystemSupported}
                                 onSnapshot={handleSnapshot}
                                 onStartRecording={handleStartRecording}
                                 onStopRecording={handleStopRecording}
@@ -106,10 +144,11 @@
                                 <FilterDropdown />
                             </div>
                         </div>
-                        
-                        <button 
+
+                        <button
                             onclick={handleStopCamera}
                             class="btn-liquid btn-purple-liquid px-6 py-5 rounded-liquid font-black text-xs uppercase tracking-[0.2em] shadow-lg"
+                            data-testid="stop-camera-btn"
                         >
                             Terminate Stream
                         </button>
@@ -126,9 +165,10 @@
                     <p class="text-xl font-medium text-lavender-purple/80 tracking-wide">High-Fidelity Real-Time Visual Processing</p>
                 </div>
 
-                <button 
+                <button
                     onclick={handleStartCamera}
                     class="btn-liquid btn-orange-liquid px-16 py-8 rounded-liquid text-3xl font-black shadow-[0_20px_50px_rgba(255,109,0,0.3)] tracking-tight"
+                    data-testid="start-camera-btn"
                 >
                     Initialize Vision
                 </button>

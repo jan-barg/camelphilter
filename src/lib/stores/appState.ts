@@ -1,13 +1,34 @@
-import { writable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 
-// Tracks if the video is currently being encoded/saved
+/**
+ * App State Store
+ * Manages global UI state for recording and file system.
+ */
+
+// Recording state
 export const isRecording = writable(false);
 
-// Tracks if the user has picked a folder for their captures
-export const directorySelected = writable(false);
+// File System Access API handle (null if not supported or not selected)
+export const directoryHandle = writable<FileSystemDirectoryHandle | null>(null);
 
-// Tracks the current human-readable save path
+// Human-readable save path for display
 export const savePath = writable<string | null>(null);
 
-// The active filter ID (e.g., 'none', '8bit', 'ascii')
-export const activeFilter = writable('none');
+// Whether File System Access API is supported
+export const isFileSystemSupported = writable(
+	typeof window !== 'undefined' && 'showDirectoryPicker' in window
+);
+
+// Derived: whether a directory has been selected (or fallback mode)
+export const directorySelected = derived(
+	[directoryHandle, isFileSystemSupported],
+	([$handle, $supported]) => {
+		// In fallback mode (not supported), always "selected" (will use downloads)
+		if (!$supported) return true;
+		// Otherwise, need an actual handle
+		return $handle !== null;
+	}
+);
+
+// Derived: whether recording/snapshot actions are enabled
+export const canCapture = derived(directorySelected, ($selected) => $selected);

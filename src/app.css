@@ -79,9 +79,19 @@
 		background: rgba(255, 255, 255, 0.8);
 		backdrop-filter: blur(30px) saturate(200%);
 		border: 1px solid rgba(255, 255, 255, 1);
-		box-shadow: 
+		box-shadow:
 			0 20px 40px rgba(36, 0, 70, 0.15),
 			0 0 0 1px rgba(36, 0, 70, 0.05);
+	}
+
+	/* Alias for backwards compatibility with FilterDropdown */
+	.glass-panel {
+		background: rgba(255, 255, 255, 0.4);
+		backdrop-filter: blur(20px) saturate(180%);
+		border: 1px solid rgba(255, 255, 255, 0.7);
+		box-shadow:
+			0 8px 32px 0 rgba(36, 0, 70, 0.08),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 	}
 }
 

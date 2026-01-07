@@ -35,7 +35,7 @@
   - `src/app.css` - Tailwind v4 theme with Solar Amethyst colors
     - Custom colors: off-white, oranges (pumpkin-spice to amber-glow), purples (dark-amethyst to lavender-purple)
     - Liquid glass button animations with hover scale and fill effects
-    - Glass panel styling with backdrop blur
+    - Glass panel styling with backdrop blur (`.liquid-glass`, `.glass-panel`)
   - `src/lib/components/Navbar.svelte` - Brand header with dark-amethyst text
   - `src/lib/components/FilterDropdown.svelte` - Custom dropdown with Lucide icons
     - Svelte 5 snippets for dynamic icon rendering
@@ -43,11 +43,33 @@
   - `src/lib/components/ActionBar.svelte` - Bottom action bar
     - Snapshot button (orange with purple hover fill)
     - Record button (purple with orange hover fill, toggles to Stop)
-    - Save path display placeholder
-  - `src/routes/+page.svelte` - Main layout with style guide architecture
-    - Center-weighted video feed (max-width 1200px, 16:9 aspect, rounded-liquid)
+    - Directory picker button with fallback display
+    - Buttons disabled when no directory selected (in File System API mode)
+  - `src/routes/+page.svelte` - Main layout (refined by Gemini)
+    - 1000px fixed-width video stage with 16:9 aspect
     - Right sidebar with filter dropdown and stop button
     - Bottom action bar in glass panel
+    - Responsive scaling for smaller screens
+
+- **Core Module E: Recorder Service** (2026-01-07)
+  - `src/lib/services/recorder.ts` - Video recording with MediaRecorder API
+    - `initRecorder(canvas)` - Initialize with canvas.captureStream()
+    - `startRecording()` / `stopRecording()` - Control recording
+    - Auto-selects best codec (VP9 > VP8 > WebM > MP4)
+    - 5 Mbps bitrate, 1-second chunks for error recovery
+    - `destroyRecorder()` - Cleanup on unmount
+  - `src/lib/services/filesystem.ts` - File system with fallback
+    - `requestDirectory()` - Opens native directory picker
+    - `saveToDirectory(blob, filename)` - Saves via File System Access API
+    - `downloadBlob(blob, filename)` - Fallback browser download
+    - `saveSnapshot(canvas)` - Captures canvas as PNG
+    - `generateFilename(prefix, ext)` - Timestamped filenames
+  - `src/lib/stores/appState.ts` - Updated with new stores
+    - `directoryHandle` - FileSystemDirectoryHandle reference
+    - `isFileSystemSupported` - API support detection
+    - `canCapture` - Derived: whether recording/snapshot is enabled
+  - `src/lib/types/filesystem.d.ts` - TypeScript declarations for File System Access API
+  - `src/lib/components/FilterCanvas.svelte` - Added `canvasRef` bindable prop for recording
 
 - **Scripts Available**
   - `npm run dev` - Development server
@@ -60,13 +82,11 @@
   - `npm run format` - Auto-format code
 
 ## Next Steps
-1. Implement Core Module E: Recorder service with File System Access API fallback
-2. Add snapshot functionality (hook up to ActionBar button)
-3. Improve filter aesthetics (deferred from previous session)
-4. Polish UI (visual tweaks after user review)
-
-## Technical Debt
-- None yet
+1. Add ability to select and modify save directory for snapshots and recordings
+2. Make the recording save and download in MP4 or MOV instead of webm.
+3. Add mirror/flip camera toggle (horizontal flip for selfie mode)
+4. Improve filter aesthetics (deferred from previous session)
+5. Polish UI (visual tweaks after user review)
 
 ## Notes
 - HTTPS is mandatory for `getUserMedia` to work in browsers

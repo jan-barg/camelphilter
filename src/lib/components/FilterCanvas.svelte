@@ -5,6 +5,7 @@
   Props:
     - stream: MediaStream - The camera stream to render
     - filter: FilterFunction - The filter function to apply to each frame
+    - canvasRef: HTMLCanvasElement | null - Bindable canvas reference for recording/snapshots
 
   Events: None
 
@@ -23,15 +24,22 @@
 	// Props
 	let {
 		stream,
-		filter = identity
+		filter = identity,
+		canvasRef = $bindable(null)
 	}: {
 		stream: MediaStream;
 		filter?: FilterFunction;
+		canvasRef?: HTMLCanvasElement | null;
 	} = $props();
 
 	// Canvas and video references
-	let canvasElement: HTMLCanvasElement | null = null;
+	let canvasElement: HTMLCanvasElement | null = $state(null);
 	let videoElement: HTMLVideoElement | null = null;
+
+	// Sync internal canvas element to bindable prop
+	$effect(() => {
+		canvasRef = canvasElement;
+	});
 
 	// Offscreen canvas for processing (avoids flicker)
 	let offscreenCanvas: HTMLCanvasElement | null = null;
@@ -189,9 +197,10 @@
 ></video>
 
 <!-- Visible canvas for rendered output -->
-<canvas 
+<canvas
     bind:this={canvasElement}
     class="w-full h-full object-cover"
+    data-testid="filter-canvas"
 ></canvas>
 
 <style>
