@@ -1,17 +1,87 @@
 @import 'tailwindcss';
 
-/* Custom base styles */
-@layer base {
-	html,
-	body {
-		height: 100%;
-		margin: 0;
-		padding: 0;
-	}
+@theme {
+    --color-off-white: #faf9f6;
+    --color-pumpkin-spice: #ff6d00;
+    --color-harvest-orange: #ff7900;
+    --color-amber-glow: #ff9e00;
+    --color-dark-amethyst: #240046;
+    --color-indigo-ink: #3c096c;
+    --color-indigo-velvet: #5a189a;
+    --color-royal-violet: #7b2cbf;
+    --color-lavender-purple: #9d4edd;
+    --radius-liquid: 2rem;
+}
 
-	body {
-		background-color: theme(--color-neutral-900);
-		color: theme(--color-neutral-100);
-		font-family: system-ui, -apple-system, sans-serif;
+@layer base {
+    body {
+        background-color: var(--color-off-white);
+        color: var(--color-dark-amethyst);
+        overflow-x: hidden;
+    }
+}
+
+@layer components {
+    /* The core Liquid Glass substrate */
+    .liquid-glass {
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 
+            0 8px 32px 0 rgba(36, 0, 70, 0.08),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-liquid {
+        @apply relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)];
+        isolation: isolate;
+    }
+
+    .btn-liquid:hover {
+        @apply scale-105 shadow-2xl;
+    }
+
+    /* The "Liquid Fill" effect */
+    .btn-liquid::after {
+        content: '';
+        position: absolute;
+        bottom: -10%;
+        left: -10%;
+        width: 120%;
+        height: 0;
+        border-radius: 40% 40% 0 0; /* Creates a slight "wave" top */
+        transition: height 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+        z-index: -1;
+    }
+
+    .btn-liquid:hover::after {
+        height: 120%;
+    }
+
+    /* Orange Button -> Purple Liquid */
+    .btn-orange-liquid {
+        @apply bg-pumpkin-spice text-white border border-white/20;
+    }
+    .btn-orange-liquid::after {
+        @apply bg-royal-violet;
+    }
+
+    /* Purple Button -> Orange Liquid */
+    .btn-purple-liquid {
+        @apply bg-indigo-velvet text-white border border-white/20;
+    }
+    .btn-purple-liquid::after {
+        @apply bg-pumpkin-spice;
+    }
+
+	.dropdown-glass {
+		@apply absolute top-full left-0 right-0 mt-3 p-2;
+		background: rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(30px) saturate(200%);
+		border: 1px solid rgba(255, 255, 255, 1);
+		box-shadow: 
+			0 20px 40px rgba(36, 0, 70, 0.15),
+			0 0 0 1px rgba(36, 0, 70, 0.05);
 	}
 }
+

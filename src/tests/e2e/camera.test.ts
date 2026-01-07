@@ -17,7 +17,7 @@ test.describe('Camera Module', () => {
 	test('page has correct title', async ({ page }) => {
 		await page.goto('/');
 
-		await expect(page).toHaveTitle('Camelphilter');
+		await expect(page).toHaveTitle('CamelPhilter');
 	});
 
 	test('starts camera stream when button clicked', async ({ page }) => {
@@ -86,14 +86,17 @@ test.describe('Camera Module', () => {
 		// Wait for canvas
 		await expect(page.getByTestId('filter-canvas')).toBeVisible({ timeout: 5000 });
 
-		// Verify filter select is visible
-		const filterSelect = page.getByTestId('filter-select');
-		await expect(filterSelect).toBeVisible();
+		// Verify filter dropdown is visible
+		const filterDropdown = page.getByTestId('filter-dropdown');
+		await expect(filterDropdown).toBeVisible();
 
-		// Change filter to '8-Bit'
-		await filterSelect.selectOption('8-Bit');
+		// Click to open dropdown
+		await filterDropdown.getByRole('button').first().click();
 
-		// Verify the selection changed
-		await expect(filterSelect).toHaveValue('8-Bit');
+		// Select '8-Bit' option
+		await page.getByRole('option', { name: '8-Bit' }).click();
+
+		// Verify the dropdown trigger now shows '8-Bit'
+		await expect(filterDropdown).toContainText('8-Bit');
 	});
 });

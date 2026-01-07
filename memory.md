@@ -31,6 +31,24 @@
   - isMounted guard and proper cleanup on destroy
   - 6 e2e tests passing (`src/tests/e2e/camera.test.ts`)
 
+- **Core Module D: UI Components** (2026-01-07)
+  - `src/app.css` - Tailwind v4 theme with Solar Amethyst colors
+    - Custom colors: off-white, oranges (pumpkin-spice to amber-glow), purples (dark-amethyst to lavender-purple)
+    - Liquid glass button animations with hover scale and fill effects
+    - Glass panel styling with backdrop blur
+  - `src/lib/components/Navbar.svelte` - Brand header with dark-amethyst text
+  - `src/lib/components/FilterDropdown.svelte` - Custom dropdown with Lucide icons
+    - Svelte 5 snippets for dynamic icon rendering
+    - Slide transition with droplet expand animation
+  - `src/lib/components/ActionBar.svelte` - Bottom action bar
+    - Snapshot button (orange with purple hover fill)
+    - Record button (purple with orange hover fill, toggles to Stop)
+    - Save path display placeholder
+  - `src/routes/+page.svelte` - Main layout with style guide architecture
+    - Center-weighted video feed (max-width 1200px, 16:9 aspect, rounded-liquid)
+    - Right sidebar with filter dropdown and stop button
+    - Bottom action bar in glass panel
+
 - **Scripts Available**
   - `npm run dev` - Development server
   - `npm run dev:https` - HTTPS dev server (required for getUserMedia)
@@ -42,10 +60,10 @@
   - `npm run format` - Auto-format code
 
 ## Next Steps
-1. Build UI components (FilterDropdown with icons, Controls overlay)
-2. Implement Core Module E: Recorder service with File System Access API fallback
-3. Add snapshot functionality
-4. Polish UI layout (high-z-index overlay for controls)
+1. Implement Core Module E: Recorder service with File System Access API fallback
+2. Add snapshot functionality (hook up to ActionBar button)
+3. Improve filter aesthetics (deferred from previous session)
+4. Polish UI (visual tweaks after user review)
 
 ## Technical Debt
 - None yet

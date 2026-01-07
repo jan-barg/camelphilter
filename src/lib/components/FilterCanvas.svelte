@@ -189,8 +189,20 @@
 ></video>
 
 <!-- Visible canvas for rendered output -->
-<canvas
-	bind:this={canvasElement}
-	class="w-full max-w-4xl bg-black rounded"
-	data-testid="filter-canvas"
+<canvas 
+    bind:this={canvasElement}
+    class="w-full h-full object-cover"
 ></canvas>
+
+<style>
+    /* object-cover ensures the video fills the 16:9 frame 
+       completely, even if your webcam is a different aspect 
+       ratio (like 4:3), by subtly cropping the edges.
+    */
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+</style>
