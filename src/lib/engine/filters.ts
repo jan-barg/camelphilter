@@ -12,6 +12,16 @@ export interface FilterDefinition {
 	apply: FilterFunction;
 }
 
+/** Helper for smooth color transitions */
+function lerp(start: number, end: number, t: number): number {
+	return start * (1 - t) + end * t;
+}
+
+/** Helper to clamp a value between min and max */
+function clamp(value: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, value));
+}
+
 /**
  * Identity filter - returns image unchanged.
  * Useful as a "None" option.
@@ -21,112 +31,194 @@ export function identity(imageData: ImageData): ImageData {
 }
 
 /**
- * Orange and Teal color grading filter.
- * Pushes shadows toward teal and highlights toward orange.
+ * Modern High-Fidelity Orange & Teal (Thermal/Gradient Map Style)
  */
 export function orangeTeal(imageData: ImageData): ImageData {
-	const data: Uint8ClampedArray = imageData.data;
+	const data = imageData.data;
 	const len = data.length;
+
+	// Define our Palette (RGB)
+	const deepTeal = [0, 32, 46]; // Darkest shadows
+	const electricTeal = [0, 245, 212]; // Mid-tones (cool)
+	const burntOrange = [255, 84, 0]; // Mid-tones (warm)
+	const neonOrange = [255, 189, 0]; // Highlights
+	const solarWhite = [255, 255, 220]; // Peak brightness
 
 	for (let i = 0; i < len; i += 4) {
 		const r = data[i];
 		const g = data[i + 1];
 		const b = data[i + 2];
 
-		// Calculate luminance using standard formula
-		const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+		// Calculate Luminance
+		let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-		if (lum < 128) {
-			// Shadows: push toward teal (reduce red, boost green/blue)
-			const shadowStrength = (128 - lum) / 128;
-			data[i] = Math.max(0, r - shadowStrength * 40);
-			data[i + 1] = Math.min(255, g + shadowStrength * 15);
-			data[i + 2] = Math.min(255, b + shadowStrength * 30);
+		// Apply Contrast Curve (pushes values toward extremes for sharp look)
+		lum = 1 / (1 + Math.exp(-12 * (lum - 0.5)));
+
+		let finalR, finalG, finalB;
+
+		// Map Luminance to the 4-stage Gradient Ramp
+		if (lum < 0.25) {
+			// Deep Teal to Electric Teal
+			const t = lum / 0.25;
+			finalR = lerp(deepTeal[0], electricTeal[0], t);
+			finalG = lerp(deepTeal[1], electricTeal[1], t);
+			finalB = lerp(deepTeal[2], electricTeal[2], t);
+		} else if (lum < 0.5) {
+			// Electric Teal to Burnt Orange (The "Clash" point)
+			const t = (lum - 0.25) / 0.25;
+			finalR = lerp(electricTeal[0], burntOrange[0], t);
+			finalG = lerp(electricTeal[1], burntOrange[1], t);
+			finalB = lerp(electricTeal[2], burntOrange[2], t);
+		} else if (lum < 0.75) {
+			// Burnt Orange to Neon Orange
+			const t = (lum - 0.5) / 0.25;
+			finalR = lerp(burntOrange[0], neonOrange[0], t);
+			finalG = lerp(burntOrange[1], neonOrange[1], t);
+			finalB = lerp(burntOrange[2], neonOrange[2], t);
 		} else {
-			// Highlights: push toward orange (boost red/yellow, reduce blue)
-			const highlightStrength = (lum - 128) / 127;
-			data[i] = Math.min(255, r + highlightStrength * 40);
-			data[i + 1] = Math.min(255, g + highlightStrength * 20);
-			data[i + 2] = Math.max(0, b - highlightStrength * 40);
+			// Neon Orange to Solar White
+			const t = (lum - 0.75) / 0.25;
+			finalR = lerp(neonOrange[0], solarWhite[0], t);
+			finalG = lerp(neonOrange[1], solarWhite[1], t);
+			finalB = lerp(neonOrange[2], solarWhite[2], t);
 		}
+
+		data[i] = finalR;
+		data[i + 1] = finalG;
+		data[i + 2] = finalB;
 	}
 
 	return imageData;
 }
 
 /**
- * White noise filter.
- * Shows white noise on black background in the shape of the input feed.
- * Brightness of original pixel determines noise intensity.
+ * Modern "Analog Pulse" / Photocopy Ripple
+ * Uses stochastic dithering to create grainy, vibrating rings.
  */
 export function whiteNoise(imageData: ImageData): ImageData {
-	const data: Uint8ClampedArray = imageData.data;
-	const len = data.length;
+	const data = imageData.data;
+	const { width, height } = imageData;
 
-	for (let i = 0; i < len; i += 4) {
-		const r = data[i];
-		const g = data[i + 1];
-		const b = data[i + 2];
+	const centerX = width / 2;
+	const centerY = height / 2;
+	const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
 
-		// Calculate luminance to determine shape intensity
-		const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-		const normalizedLum = lum / 255;
+	// Tweak these to adjust the look
+	const frequency = 0.25; // Lower = wider, less pronounced rings
+	const grainSharpness = 1.8; // Lower = brighter overall
+	const radialFade = 1.8; // Higher = rings fade faster toward edges
 
-		// Generate noise scaled by luminance
-		const noise = Math.floor(Math.random() * 256 * normalizedLum);
+	for (let i = 0; i < data.length; i += 4) {
+		const x = (i / 4) % width;
+		const y = Math.floor(i / 4 / width);
 
-		data[i] = noise;
-		data[i + 1] = noise;
-		data[i + 2] = noise;
-		// Alpha unchanged
+		// Coordinates and Radial Falloff
+		const dx = x - centerX;
+		const dy = y - centerY;
+		const dist = Math.sqrt(dx * dx + dy * dy);
+		const normDist = dist / maxDist;
+
+		// This creates the "more visible toward edges" effect (inverted)
+		const ringIntensity = Math.pow(clamp(normDist, 0, 1), radialFade);
+
+		// Get original luminance
+		const r = data[i],
+			g = data[i + 1],
+			b = data[i + 2];
+		const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+		// The "Probability Wave"
+		// Instead of drawing a line, we create a value that swings
+		// the chance of a pixel being white or black.
+		const sineWave = Math.sin(dist * frequency);
+
+		// Blend the sine wave with the image light.
+		// Multiply by 'ringIntensity' so the wave disappears at the edges.
+		const probability = lerp(lum, (sineWave * 0.5 + 0.5) * lum, ringIntensity);
+
+		// Stochastic Dither (The "Grit" Secret)
+		// Compare a random number against our probability.
+		// Use Math.pow to "crunch" the contrast like a photocopy.
+		const randomThreshold = Math.random();
+		const isWhite = Math.pow(probability, grainSharpness) > randomThreshold;
+
+		// Output: Deep Black and Off-White
+		const finalColor = isWhite ? 240 : 10;
+
+		data[i] = data[i + 1] = data[i + 2] = finalColor;
 	}
 
 	return imageData;
 }
 
+// Modern "Solarized" Palette for quantization
+const PALETTE = [
+	[36, 0, 70], // Deep Amethyst
+	[60, 9, 108], // Dark Purple
+	[90, 24, 154], // Purple
+	[123, 44, 191], // Lavender
+	[255, 109, 0], // Neon Orange
+	[255, 158, 0], // Bright Gold
+	[240, 240, 240] // Off-White
+];
+
 /**
- * 8-bit pixelation filter.
- * Groups pixels into 8x8 blocks and averages colors within each block.
+ * 8-bit pixelation filter with LCD grid effect.
+ * Quantizes colors to a custom palette and adds pixel gaps.
  */
 export function eightBit(imageData: ImageData): ImageData {
-	const data: Uint8ClampedArray = imageData.data;
-	const width = imageData.width;
-	const height = imageData.height;
-	const blockSize = 8;
+	const { data, width, height } = imageData;
+	const blockSize = 10; // Slightly larger for a bolder look
+	const gap = 1; // The "LCD" pixel gap
 
-	for (let blockY = 0; blockY < height; blockY += blockSize) {
-		for (let blockX = 0; blockX < width; blockX += blockSize) {
-			let totalR = 0;
-			let totalG = 0;
-			let totalB = 0;
-			let count = 0;
+	for (let y = 0; y < height; y += blockSize) {
+		for (let x = 0; x < width; x += blockSize) {
+			// Sample the color at the center of the block (Sharper than averaging)
+			const centerX = Math.min(x + blockSize / 2, width - 1);
+			const centerY = Math.min(y + blockSize / 2, height - 1);
+			const centerIdx = (Math.floor(centerY) * width + Math.floor(centerX)) * 4;
 
-			// Calculate average color for the block
-			const maxY = Math.min(blockY + blockSize, height);
-			const maxX = Math.min(blockX + blockSize, width);
+			const r = data[centerIdx];
+			const g = data[centerIdx + 1];
+			const b = data[centerIdx + 2];
 
-			for (let y = blockY; y < maxY; y++) {
-				for (let x = blockX; x < maxX; x++) {
-					const idx = (y * width + x) * 4;
-					totalR += data[idx];
-					totalG += data[idx + 1];
-					totalB += data[idx + 2];
-					count++;
+			// Quantize to our custom Palette
+			// Find the nearest color in our custom list
+			let closestColor = PALETTE[0];
+			let minDistance = Infinity;
+
+			for (const color of PALETTE) {
+				const distance = Math.sqrt(
+					Math.pow(r - color[0], 2) + Math.pow(g - color[1], 2) + Math.pow(b - color[2], 2)
+				);
+				if (distance < minDistance) {
+					minDistance = distance;
+					closestColor = color;
 				}
 			}
 
-			const avgR = Math.round(totalR / count);
-			const avgG = Math.round(totalG / count);
-			const avgB = Math.round(totalB / count);
+			// Fill the block with the quantized color
+			for (let blockY = 0; blockY < blockSize; blockY++) {
+				for (let blockX = 0; blockX < blockSize; blockX++) {
+					const py = y + blockY;
+					const px = x + blockX;
 
-			// Apply average color to all pixels in block
-			for (let y = blockY; y < maxY; y++) {
-				for (let x = blockX; x < maxX; x++) {
-					const idx = (y * width + x) * 4;
-					data[idx] = avgR;
-					data[idx + 1] = avgG;
-					data[idx + 2] = avgB;
-					// Alpha unchanged
+					if (py < height && px < width) {
+						const idx = (py * width + px) * 4;
+
+						// Create the LCD Grid Effect
+						// If we are at the edge of a block, we darken it
+						if (blockX < gap || blockY < gap) {
+							data[idx] = closestColor[0] * 0.15;
+							data[idx + 1] = closestColor[1] * 0.15;
+							data[idx + 2] = closestColor[2] * 0.15;
+						} else {
+							data[idx] = closestColor[0];
+							data[idx + 1] = closestColor[1];
+							data[idx + 2] = closestColor[2];
+						}
+					}
 				}
 			}
 		}
