@@ -6,6 +6,7 @@
     - stream: MediaStream - The camera stream to render
     - filter: FilterFunction - The filter function to apply to each frame
     - canvasRef: HTMLCanvasElement | null - Bindable canvas reference for recording/snapshots
+    - mirrored: boolean - Whether to horizontally flip the video (selfie mode)
 
   Events: None
 
@@ -25,11 +26,13 @@
 	let {
 		stream,
 		filter = identity,
-		canvasRef = $bindable(null)
+		canvasRef = $bindable(null),
+		mirrored = true
 	}: {
 		stream: MediaStream;
 		filter?: FilterFunction;
 		canvasRef?: HTMLCanvasElement | null;
+		mirrored?: boolean;
 	} = $props();
 
 	// Canvas and video references
@@ -116,8 +119,15 @@
 			// Put processed data back to offscreen canvas
 			offscreenCtx.putImageData(imageData, 0, 0);
 
-			// Copy to visible canvas
-			visibleCtx.drawImage(offscreenCanvas, 0, 0);
+			// Copy to visible canvas (with optional mirror flip)
+			visibleCtx.save();
+			if (mirrored) {
+				visibleCtx.scale(-1, 1);
+				visibleCtx.drawImage(offscreenCanvas, -canvasWidth, 0);
+			} else {
+				visibleCtx.drawImage(offscreenCanvas, 0, 0);
+			}
+			visibleCtx.restore();
 		}
 
 		// Schedule next frame

@@ -47,7 +47,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="relative" data-testid="filter-dropdown">
+<div class="flex flex-col" data-testid="filter-dropdown">
 	<!-- Trigger Button -->
 	<button
 		onclick={handleToggle}
@@ -68,10 +68,10 @@
 		</span>
 	</button>
 
-	<!-- Dropdown Menu -->
+	<!-- Dropdown Menu (flows in document, pushes content down) -->
 	{#if isOpen}
 		<div
-			class="absolute top-full left-0 right-0 mt-2 glass-panel rounded-liquid overflow-hidden z-50 dropdown-enter"
+			class="mt-2 glass-panel rounded-liquid overflow-hidden"
 			role="listbox"
 			transition:slide={{ duration: 200, easing: cubicOut }}
 		>

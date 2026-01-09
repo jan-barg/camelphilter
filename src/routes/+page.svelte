@@ -3,7 +3,7 @@
     import { cameraStore, isCameraActive } from '$lib/stores/camera';
     import { requestCamera, stopCamera, isCameraSupported } from '$lib/services/camera';
     import { currentFilterFn } from '$lib/stores/filter';
-    import { isRecording, savePath, canCapture, isFileSystemSupported } from '$lib/stores/appState';
+    import { isRecording, savePath, canCapture, isFileSystemSupported, isMirrored } from '$lib/stores/appState';
     import { requestDirectory, saveSnapshot, checkFileSystemSupport } from '$lib/services/filesystem';
     import { initRecorder, startRecording, stopRecording, destroyRecorder } from '$lib/services/recorder';
 
@@ -119,6 +119,7 @@
                             <FilterCanvas
                                 stream={$cameraStore.stream}
                                 filter={$currentFilterFn}
+                                mirrored={$isMirrored}
                                 bind:canvasRef
                             />
                         </div>
@@ -140,9 +141,16 @@
                     <div class="flex flex-col justify-between w-72 py-4">
                         <div class="flex flex-col gap-4">
                             <span class="text-[10px] uppercase tracking-[0.25em] font-black text-indigo-ink/40 px-5">Configuration</span>
-                            <div class="liquid-glass p-2 rounded-liquid">
-                                <FilterDropdown />
-                            </div>
+                            <FilterDropdown />
+                            <button
+                                onclick={() => isMirrored.update(v => !v)}
+                                class="liquid-glass p-4 rounded-liquid flex items-center justify-between hover:bg-dark-amethyst/5 transition-colors"
+                            >
+                                <span class="text-sm font-semibold text-dark-amethyst">Mirror View</span>
+                                <span class="text-xs font-bold px-2 py-1 rounded {$isMirrored ? 'bg-pumpkin-spice/20 text-pumpkin-spice' : 'bg-indigo-ink/10 text-indigo-ink/50'}">
+                                    {$isMirrored ? 'ON' : 'OFF'}
+                                </span>
+                            </button>
                         </div>
 
                         <button
