@@ -31,57 +31,65 @@ export function identity(imageData: ImageData): ImageData {
 }
 
 /**
- * Modern High-Fidelity Orange & Teal (Thermal/Gradient Map Style)
+ * Expressive Orange & Teal: Textured but Geometrically Sharp
  */
 export function orangeTeal(imageData: ImageData): ImageData {
 	const data = imageData.data;
-	const len = data.length;
 
-	// Define our Palette (RGB)
-	const deepTeal = [0, 32, 46]; // Darkest shadows
-	const electricTeal = [0, 245, 212]; // Mid-tones (cool)
-	const burntOrange = [255, 84, 0]; // Mid-tones (warm)
-	const neonOrange = [255, 189, 0]; // Highlights
-	const solarWhite = [255, 255, 220]; // Peak brightness
+	// Palette
+	const deepTeal = [0, 32, 46];
+	const electricTeal = [0, 245, 212];
+	const burntOrange = [255, 84, 0];
+	const neonOrange = [255, 189, 0];
+	const solarWhite = [255, 255, 220];
 
-	for (let i = 0; i < len; i += 4) {
+	for (let i = 0; i < data.length; i += 4) {
 		const r = data[i];
 		const g = data[i + 1];
 		const b = data[i + 2];
 
-		// Calculate Luminance
-		let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+		// Calculate Base Luminance
+		const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-		// Apply Contrast Curve (pushes values toward extremes for sharp look)
-		lum = 1 / (1 + Math.exp(-12 * (lum - 0.5)));
+		// Introduce Per-Channel "Grit"
+		// Jitter the luminance value to create a "noisy smear" effect
+		const grainIntensity = 0.08;
+		const noise = (Math.random() - 0.5) * grainIntensity;
+
+		// Push contrast aggressively
+		let gritLum = Math.max(0, Math.min(1, lum + noise));
+		gritLum = 1 / (1 + Math.exp(-14 * (gritLum - 0.5)));
 
 		let finalR, finalG, finalB;
 
-		// Map Luminance to the 4-stage Gradient Ramp
-		if (lum < 0.25) {
-			// Deep Teal to Electric Teal
-			const t = lum / 0.25;
+		// Color Mapping
+		if (gritLum < 0.25) {
+			const t = gritLum / 0.25;
 			finalR = lerp(deepTeal[0], electricTeal[0], t);
 			finalG = lerp(deepTeal[1], electricTeal[1], t);
 			finalB = lerp(deepTeal[2], electricTeal[2], t);
-		} else if (lum < 0.5) {
-			// Electric Teal to Burnt Orange (The "Clash" point)
-			const t = (lum - 0.25) / 0.25;
+		} else if (gritLum < 0.5) {
+			const t = (gritLum - 0.25) / 0.25;
 			finalR = lerp(electricTeal[0], burntOrange[0], t);
 			finalG = lerp(electricTeal[1], burntOrange[1], t);
 			finalB = lerp(electricTeal[2], burntOrange[2], t);
-		} else if (lum < 0.75) {
-			// Burnt Orange to Neon Orange
-			const t = (lum - 0.5) / 0.25;
+		} else if (gritLum < 0.75) {
+			const t = (gritLum - 0.5) / 0.25;
 			finalR = lerp(burntOrange[0], neonOrange[0], t);
 			finalG = lerp(burntOrange[1], neonOrange[1], t);
 			finalB = lerp(burntOrange[2], neonOrange[2], t);
 		} else {
-			// Neon Orange to Solar White
-			const t = (lum - 0.75) / 0.25;
+			const t = (gritLum - 0.75) / 0.25;
 			finalR = lerp(neonOrange[0], solarWhite[0], t);
 			finalG = lerp(neonOrange[1], solarWhite[1], t);
 			finalB = lerp(neonOrange[2], solarWhite[2], t);
+		}
+
+		// Subtle Chromatic Jitter
+		// Randomly spikes a channel to simulate "sensor noise"
+		if (Math.random() > 0.95) {
+			finalR *= 1.05;
+			finalB *= 0.95;
 		}
 
 		data[i] = finalR;
@@ -93,62 +101,61 @@ export function orangeTeal(imageData: ImageData): ImageData {
 }
 
 /**
- * Modern "Analog Pulse" / Photocopy Ripple
- * Uses stochastic dithering to create grainy, vibrating rings.
+ * Artistic "Distressed Xerograph"
+ * Fixed tonal range with highlight recovery and atmospheric ghosting.
  */
 export function whiteNoise(imageData: ImageData): ImageData {
-	const data = imageData.data;
-	const { width, height } = imageData;
+	const { data, width, height } = imageData;
 
-	const centerX = width / 2;
-	const centerY = height / 2;
-	const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
+	// The "Artistic" Tuning
+	const gamma = 0.7; // Highlight recovery: Lower = more detail in whites
+	const shadowLift = 15; // Keeps shadows from being pitch black
+	const ghostIntensity = 0.2; // Horizontal smear strength
 
-	// Tweak these to adjust the look
-	const frequency = 0.25; // Lower = wider, less pronounced rings
-	const grainSharpness = 1.8; // Lower = brighter overall
-	const radialFade = 1.8; // Higher = rings fade faster toward edges
+	for (let y = 0; y < height; y++) {
+		let ghostTrail = 0;
 
-	for (let i = 0; i < data.length; i += 4) {
-		const x = (i / 4) % width;
-		const y = Math.floor(i / 4 / width);
+		for (let x = 0; x < width; x++) {
+			const i = (y * width + x) * 4;
 
-		// Coordinates and Radial Falloff
-		const dx = x - centerX;
-		const dy = y - centerY;
-		const dist = Math.sqrt(dx * dx + dy * dy);
-		const normDist = dist / maxDist;
+			// Get Original Luminance
+			const r = data[i],
+				g = data[i + 1],
+				b = data[i + 2];
+			let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-		// This creates the "more visible toward edges" effect (inverted)
-		const ringIntensity = Math.pow(clamp(normDist, 0, 1), radialFade);
+			// Tonal Compression (Gamma Correction)
+			// Pulls detail out of "white" areas so face isn't a blob
+			lum = Math.pow(lum, gamma);
 
-		// Get original luminance
-		const r = data[i],
-			g = data[i + 1],
-			b = data[i + 2];
-		const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+			// Horizontal Ghosting (Smear)
+			// Mix a bit of the "memory" back into the pixel
+			const smearedLum = lum * (1 - ghostIntensity) + ghostTrail * ghostIntensity;
+			ghostTrail = smearedLum; // Update trail for next pixel
 
-		// The "Probability Wave"
-		// Instead of drawing a line, we create a value that swings
-		// the chance of a pixel being white or black.
-		const sineWave = Math.sin(dist * frequency);
+			// Artistic Dither (Approximated Blue Noise)
+			// Coordinate-based jitter for "woven" or "etched" grain feel
+			const jitter = ((x ^ y) % 9) / 9.0;
+			const grain = Math.random() * 0.4 + jitter * 0.2;
 
-		// Blend the sine wave with the image light.
-		// Multiply by 'ringIntensity' so the wave disappears at the edges.
-		const probability = lerp(lum, (sineWave * 0.5 + 0.5) * lum, ringIntensity);
+			// Four-Tone Ink System
+			// Using 4 levels instead of 2 for expressive analog look
+			let finalColor;
+			const threshold = smearedLum + (grain - 0.3);
 
-		// Stochastic Dither (The "Grit" Secret)
-		// Compare a random number against our probability.
-		// Use Math.pow to "crunch" the contrast like a photocopy.
-		const randomThreshold = Math.random();
-		const isWhite = Math.pow(probability, grainSharpness) > randomThreshold;
+			if (threshold > 0.85) {
+				finalColor = 248; // Cream White
+			} else if (threshold > 0.5) {
+				finalColor = 190; // Light Grey (Detail saver)
+			} else if (threshold > 0.2) {
+				finalColor = 70; // Charcoal
+			} else {
+				finalColor = 25 + shadowLift; // Deep Ink
+			}
 
-		// Output: Deep Black and Off-White
-		const finalColor = isWhite ? 240 : 10;
-
-		data[i] = data[i + 1] = data[i + 2] = finalColor;
+			data[i] = data[i + 1] = data[i + 2] = finalColor;
+		}
 	}
-
 	return imageData;
 }
 
@@ -227,44 +234,88 @@ export function eightBit(imageData: ImageData): ImageData {
 	return imageData;
 }
 
-/**
- * ASCII character gradient for brightness mapping.
- * From dark to light: "@#S%?*+;:,.  "
- */
-export const ASCII_CHARS = '@#S%?*+;:,. ';
+// Character Atlas (8x8 Bitmasks)
+// 1 = Ink (Amethyst), 0 = Paper (White)
+const CHARS = [
+	// Empty
+	[
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	],
+	// Dot
+	[
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
+		0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	],
+	// Plus
+	[
+		0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0
+	],
+	// Box
+	[
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+		1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	],
+	// Dense
+	[
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1,
+		1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	]
+];
 
 /**
- * Get ASCII character for a given brightness level (0-255).
+ * ASCII filter using 8x8 bitmap characters.
+ * Maps brightness to character density for a clean typographic look.
  */
-export function getAsciiChar(brightness: number): string {
-	const index = Math.floor((brightness / 255) * (ASCII_CHARS.length - 1));
-	return ASCII_CHARS[index];
-}
+export function ascii(imageData: ImageData): ImageData {
+	const { data, width, height } = imageData;
+	const blockSize = 8;
 
-/**
- * ASCII grayscale filter.
- * Converts to grayscale using luminosity formula.
- * Note: Actual ASCII character rendering happens in the canvas component.
- * This filter prepares the image by converting to grayscale.
- */
-export function asciiGrayscale(imageData: ImageData): ImageData {
-	const data: Uint8ClampedArray = imageData.data;
-	const len = data.length;
+	// Brand Colors
+	const ink = [36, 0, 70]; // Deep Amethyst
+	const paper = [250, 250, 250]; // Clean White
 
-	for (let i = 0; i < len; i += 4) {
-		const r = data[i];
-		const g = data[i + 1];
-		const b = data[i + 2];
+	for (let y = 0; y < height; y += blockSize) {
+		for (let x = 0; x < width; x += blockSize) {
+			// Get average brightness for the block
+			let totalLum = 0;
+			let count = 0;
+			for (let by = 0; by < blockSize && y + by < height; by++) {
+				for (let bx = 0; bx < blockSize && x + bx < width; bx++) {
+					const i = ((y + by) * width + (x + bx)) * 4;
+					totalLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+					count++;
+				}
+			}
 
-		// Luminosity formula: Y = 0.299R + 0.587G + 0.114B
-		const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+			// Normalize and Boost Contrast
+			let lum = totalLum / count / 255;
+			lum = clamp((lum - 0.2) * 1.5, 0, 1); // Crushes shadows, brightens mids
 
-		data[i] = gray;
-		data[i + 1] = gray;
-		data[i + 2] = gray;
-		// Alpha unchanged
+			// Select Character Mask based on brightness
+			// Inverted logic: Darker image areas get denser characters
+			const charIndex = Math.floor((1 - lum) * (CHARS.length - 1));
+			const mask = CHARS[charIndex];
+
+			// "Draw" the character into the ImageData
+			for (let by = 0; by < blockSize; by++) {
+				for (let bx = 0; bx < blockSize; bx++) {
+					const py = y + by;
+					const px = x + bx;
+					if (py < height && px < width) {
+						const i = (py * width + px) * 4;
+						const isInk = mask[by * blockSize + bx] === 1;
+
+						const color = isInk ? ink : paper;
+						data[i] = color[0];
+						data[i + 1] = color[1];
+						data[i + 2] = color[2];
+					}
+				}
+			}
+		}
 	}
-
 	return imageData;
 }
 
@@ -276,5 +327,5 @@ export const filters: FilterDefinition[] = [
 	{ name: 'Orange & Teal', icon: 'sun', apply: orangeTeal },
 	{ name: 'White Noise', icon: 'tv', apply: whiteNoise },
 	{ name: '8-Bit', icon: 'grid-3x3', apply: eightBit },
-	{ name: 'ASCII', icon: 'type', apply: asciiGrayscale }
+	{ name: 'ASCII', icon: 'type', apply: ascii }
 ];
