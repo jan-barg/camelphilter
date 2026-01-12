@@ -1,17 +1,15 @@
 # CamelPhilter
 
-**High-Fidelity Real-Time Visual Processing**
-
-A simple webcam filter application built with SvelteKit 5 and modern web APIs. Apply artistic filters to your camera feed in real-time, capture snapshots, and record filtered video.
+A simple webcam filter application built with SvelteKit 5 and web APIs.
 
 ---
 
 ## Features
 
-- **Real-Time Filtering** - Apply filters to your webcam feed with zero perceptible latency
+- **Real-Time** - Apply filters to your webcam feed with zero perceptible latency
 - **Filters** - Including real-time ASCII encoding and color wiggling
-- **Video Recording** - Capture filtered video directly to WebM
-- **Instant Snapshots** - Save any frame as a PNG image
+- **Recording** - Capture filtered video directly to WebM
+- **Snapshots** - Save any frame as a PNG image
 - **Mirroring** - Selfie-style horizontal flip (enabled by default)
 - **File Saving** - Choose your save directory via File System Access API (Chrome) or auto-download (Safari/Firefox)
 
